@@ -29,16 +29,21 @@ public class SettingFragment extends BaseFragment {
     private ImageView imgConnectlocation;
     private ImageView imgWalk;
     private ImageView imgPocket;
-    private ImageView img_walk,img_pocket,img_lock,img_dynamic,img_trend;
+    private ImageView img_lock,img_dynamic,img_trend;
     private ImageView img_zone0,img_zone1,img_zone3,img_zone4,img_zone5,img_zone6;
     private ImageView img_connect;
     private TextView txt_unlockdis,txt_lockdis,txt_zone,txt_trend;
-    private Button btn_1,btn_2,btn_3,btn_4,btn_unlockminus,btn_unlockplus,btn_lockminus,btn_lockplus;
+    private Button btn_1,btn_2,btn_3,btn_4,btn_rear,btn_front,btn_left,btn_right;
+    Button btn_unlockminus,btn_unlockplus,btn_lockminus,btn_lockplus;
+
     private Switch switch_record;
     private final static int UPDATE_UI = 0;
+
     public static boolean isRecord=false;
     private Runnable updateUiRunnable;
     public static int sensorTag=0;
+    public static int uwbZone=0;
+    public static int lockDis=25,unlockDis=15;
 
 
     private Handler handler = new Handler(){
@@ -74,6 +79,54 @@ public class SettingFragment extends BaseFragment {
         btn_2=view.findViewById(R.id.btn_2);
         btn_3=view.findViewById(R.id.btn_3);
         btn_4=view.findViewById(R.id.btn_4);
+        btn_rear=view.findViewById(R.id.btn_rear);
+
+        btn_front=view.findViewById(R.id.btn_front);
+        btn_left=view.findViewById(R.id.btn_left);
+        btn_right=view.findViewById(R.id.btn_right);
+
+        btn_lockminus = view.findViewById(R.id.btn_lockminus);
+        btn_lockplus = view.findViewById(R.id.btn_lockplus);
+        btn_unlockminus = view.findViewById(R.id.btn_unlockminus);
+        btn_unlockplus = view.findViewById(R.id.btn_unlockplus);
+        txt_lockdis = view.findViewById(R.id.txt_lockDis);
+        txt_unlockdis = view.findViewById(R.id.txt_unlockDis);
+
+        img_zone0 = view.findViewById(R.id.img_zone0);
+        img_zone1 = view.findViewById(R.id.img_zone1);
+        img_zone3 = view.findViewById(R.id.img_zone3);
+        img_zone4 = view.findViewById(R.id.img_zone4);
+        img_zone5 = view.findViewById(R.id.img_zone5);
+        img_zone6 = view.findViewById(R.id.img_zone6);
+
+        btn_lockminus.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                lockDis = lockDis - 1;
+                txt_lockdis.setText(" " + (float) lockDis / 10);
+            }
+        });
+        btn_lockplus.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                lockDis = lockDis + 1;
+                txt_lockdis.setText(" " + (float) lockDis / 10);
+            }
+        });
+        btn_unlockminus.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                unlockDis = unlockDis - 1;
+                txt_unlockdis.setText(" " + (float) unlockDis / 10);
+            }
+        });
+        btn_unlockplus.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                unlockDis = unlockDis + 1;
+                txt_unlockdis.setText(" " + (float) unlockDis / 10);
+            }
+        });
         switch_record.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -113,7 +166,8 @@ public class SettingFragment extends BaseFragment {
                 btn_1.setBackgroundColor(0);
                 btn_4.setBackgroundColor(0);
             }
-        }); btn_4.setOnClickListener(new View.OnClickListener() {
+        });
+        btn_4.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 sensorTag=4;
@@ -121,6 +175,46 @@ public class SettingFragment extends BaseFragment {
                 btn_2.setBackgroundColor(0);
                 btn_3.setBackgroundColor(0);
                 btn_1.setBackgroundColor(0);
+            }
+        });
+        btn_left.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                uwbZone = 0;
+                btn_left.setBackgroundColor(Color.parseColor("#FFE7BA"));
+                btn_right.setBackgroundColor(0);
+                btn_rear.setBackgroundColor(0);
+                btn_front.setBackgroundColor(0);
+            }
+        });
+        btn_front.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                uwbZone = 1;
+                btn_front.setBackgroundColor(Color.parseColor("#FFE7BA"));
+                btn_right.setBackgroundColor(0);
+                btn_rear.setBackgroundColor(0);
+                btn_left.setBackgroundColor(0);
+            }
+        });
+        btn_right.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                uwbZone = 2;
+                btn_right.setBackgroundColor(Color.parseColor("#FFE7BA"));
+                btn_left.setBackgroundColor(0);
+                btn_rear.setBackgroundColor(0);
+                btn_front.setBackgroundColor(0);
+            }
+        });
+        btn_rear.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                uwbZone = 3;
+                btn_rear.setBackgroundColor(Color.parseColor("#FFE7BA"));
+                btn_right.setBackgroundColor(0);
+                btn_left.setBackgroundColor(0);
+                btn_front.setBackgroundColor(0);
             }
         });
 
@@ -152,7 +246,7 @@ public class SettingFragment extends BaseFragment {
 
     private void updateUi(){
         int walk=ScanFragment.curMotion;
-        int zone_temp=ScanFragment.curZone;
+        int curZone=ScanFragment.curZone;
         int curLeftRight=ScanFragment.curLeftRight;
         int pocketState=ScanFragment.curPocketState;
 
@@ -174,7 +268,7 @@ public class SettingFragment extends BaseFragment {
         }
         if(blueState == 2) {
             //int zone =  MainTabConnectInfoFragment.readZone();
-            if (zone_temp == 1) {
+            if (curZone == 1) {
                 if (curLeftRight == 1){
                     zoneImage.setImageResource(R.drawable.zone1_left);
                 } else {
@@ -182,26 +276,74 @@ public class SettingFragment extends BaseFragment {
                 }
 
                 //imv_Locksign.setImageResource(R.mipmap.greenicon);
-            } else if (zone_temp == 2) {
+            } else if (curZone == 2) {
                 //    if (curLeftRight==1)
                 //     location.setImageResource(R.mipmap.zone_unknown);
                 // else  {location.setImageResource(R.mipmap.zone_unknown);}
 
-            } else if (zone_temp == 3) {
+            } else if (curZone == 3) {
                 if (curLeftRight == 1){
                     zoneImage.setImageResource(R.drawable.zone3_left);
                 } else {
                     zoneImage.setImageResource(R.drawable.zone3_right);
                 }
                 //imv_Locksign.setImageResource(R.mipmap.redicon2);
-            } else if (zone_temp == 0) {
+            } else if (curZone == 0) {
                 zoneImage.setImageResource(R.drawable.zone_0);
-            } else if (zone_temp == 255) {
+            } else if (curZone == 255) {
                 zoneImage.setImageResource(R.drawable.zone_unknown);
             }
         }else {
             zoneImage.setImageResource(R.drawable.zone_unknown);
         }
+
+        //region
+
+        if (curZone<=6){
+            img_zone6.setImageResource(R.drawable.greenicon);
+            if (curZone<=5){
+                img_zone5.setImageResource(R.drawable.greenicon);
+                if (curZone<=4){
+                    img_zone4.setImageResource(R.drawable.greenicon);
+                    switch (curZone){
+                        case (0):
+                            img_zone0.setImageResource(R.drawable.greenicon);
+                            img_zone1.setImageResource(R.drawable.redicon2);
+                            img_zone3.setImageResource(R.drawable.redicon2);
+                            break;
+                        case(1):
+                            img_zone1.setImageResource(R.drawable.greenicon);
+                            img_zone0.setImageResource(R.drawable.redicon2);
+                            img_zone3.setImageResource(R.drawable.redicon2);
+                            break;
+                        case(3):
+                            img_zone3.setImageResource(R.drawable.greenicon);
+                            img_zone0.setImageResource(R.drawable.redicon2);
+                            img_zone1.setImageResource(R.drawable.redicon2);
+                            break;
+                    }
+                }else{
+                    img_zone4.setImageResource(R.drawable.redicon2);
+                    img_zone0.setImageResource(R.drawable.grayicon);
+                    img_zone1.setImageResource(R.drawable.grayicon);
+                    img_zone3.setImageResource(R.drawable.grayicon);
+                }
+            }else{
+                img_zone5.setImageResource(R.drawable.redicon2);
+                img_zone4.setImageResource(R.drawable.grayicon);
+                img_zone0.setImageResource(R.drawable.grayicon);
+                img_zone1.setImageResource(R.drawable.grayicon);
+                img_zone3.setImageResource(R.drawable.grayicon);
+            }
+        }else{
+            img_zone6.setImageResource(R.drawable.redicon2);
+            img_zone5.setImageResource(R.drawable.grayicon);
+            img_zone4.setImageResource(R.drawable.grayicon);
+            img_zone0.setImageResource(R.drawable.grayicon);
+            img_zone1.setImageResource(R.drawable.grayicon);
+            img_zone3.setImageResource(R.drawable.grayicon);
+        }
+        //endregion
     }
 
     @Override

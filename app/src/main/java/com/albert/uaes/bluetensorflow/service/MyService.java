@@ -884,6 +884,7 @@ public class MyService extends Service implements SensorEventListener {
                         //辅模块9场强
                         ss += Integer.toString((int) ScanFragment.Nodes[9].rssi_filtered) + '\t';
                         //辅模块2场强
+                        ss+=Integer.toString(SettingFragment.uwbZone)+'\t';
                         ss+=Integer.toString(SettingFragment.sensorTag)+ '\n';
                         //Zone
                         byte[] buffer = ss.getBytes();
@@ -898,7 +899,7 @@ public class MyService extends Service implements SensorEventListener {
                         Log.d(TAG, "stop write to folie");
                     }
                 try{
-                    Thread.sleep(100);
+                    Thread.sleep(20);
                 }catch(InterruptedException e){
                     e.printStackTrace();
                 }

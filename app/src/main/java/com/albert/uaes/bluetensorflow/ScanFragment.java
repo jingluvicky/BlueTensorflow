@@ -29,10 +29,14 @@ import com.albert.uaes.bluetensorflow.utils.ThreadPoolManager;
 import com.albert.uaes.tensorflowlibrary.admin.PEPSBuilder;
 import com.albert.uaes.tensorflowlibrary.admin.PEPSDirector;
 import com.albert.uaes.tensorflowlibrary.admin.PEPSImplBuilder;
+import com.albert.uaes.tensorflowlibrary.tf.KalmanFilter_distance;
 import com.albert.uaes.tensorflowlibrary.tf.PocketDetector;
 import com.albert.uaes.tensorflowlibrary.tf.PredictionTF_motion;
+import com.albert.uaes.tensorflowlibrary.tf.PredictionTF_xy;
 import com.albert.uaes.tensorflowlibrary.tf.PredictionTF_zone;
 import com.albert.uaes.tensorflowlibrary.model.Node;
+import com.albert.uaes.tensorflowlibrary.tf.LUTprediction_top;
+import com.albert.uaes.tensorflowlibrary.tf.ZoneDebounce;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -61,17 +65,30 @@ public class ScanFragment extends BaseFragment {
 
     private PredictionTF_motion preTF_motion;
     private PredictionTF_zone preTF_zone;
+    PredictionTF_xy preTF_xy;
+    LUTprediction_top luTpredictionTop =new LUTprediction_top(); //Lookup table
+    ZoneDebounce zoneDebounce=new ZoneDebounce();
+    KalmanFilter_distance distanceFilter=new KalmanFilter_distance();
 
     public int CMDCounter;
     public int CMDValue;
-    public static int curMotion=255,curZone=255,curLeftRight=255,curZone_filtered=255,curPocketState;
+    public static int curMotion=255,curZone=255,curLeftRight=255,curZoneDebounced,curZone_filtered=255,curPocketState,awakeState=0,curX=0,curY=0;;
 
     public static float[] linearAccValue,gravityValue,gyroValue,acceleroValue;
 
+    public static float distance;
     public static WrapRssiData wrapRssiData;
 
-
-    public static Node[] Nodes=new Node[13];
+    // Variables
+    public volatile boolean exit = false;
+    public static volatile boolean toConnect=true, isScan=false,isConnect=false;
+    public static byte[] dataReceived=new byte[15];
+    public static Node[] Nodes = new Node[13];
+    public int
+            DECISIONTYPE,MOTIONEABLE,
+            ZONEBUFFERNUMBER,
+            DEBOUNCEDBUFFER1to3,DEBOUNCEDBUFFER3to1,DEBOUNCEDBUFFER1toi,
+            CARCONFIGTYPE;
 
     public static float distanceValue,light;
 
@@ -177,6 +194,15 @@ public class ScanFragment extends BaseFragment {
         txt_curMotion =view.findViewById(R.id.txt_curMotion);
         txt_curZone = view.findViewById(R.id.txt_curZone);
         textRssi = view.findViewById(R.id.text_rssi);
+
+        DECISIONTYPE=getResources().getInteger(R.integer.DECISIONTYPE);
+        ZONEBUFFERNUMBER=getResources().getInteger(R.integer.ZONEBUFFER);
+        DEBOUNCEDBUFFER1to3=getResources().getInteger(R.integer.DEBOUNCEDBUFFER1to3);
+        DEBOUNCEDBUFFER3to1=getResources().getInteger(R.integer.DEBOUNCEDBUFFER3to1);
+        DEBOUNCEDBUFFER1toi=getResources().getInteger(R.integer.DEBOUNCEDBUFFER1toi);
+        CARCONFIGTYPE=getResources().getInteger(R.integer.CARCONFIGTYPE);
+        MOTIONEABLE=getResources().getInteger(R.integer.MOTIONENABLE);
+
         for (int i=0; i<switches.length; ++i) {
             switches[i] = true;
         }
@@ -336,75 +362,71 @@ public class ScanFragment extends BaseFragment {
                 @Override
                 public void run() {
                         // perform the tensorflow model
-                        preTF_zone.Storage(Nodes);
-                        float[] outputs = preTF_zone.getPredict();
-                        // find the maximum of output
-                        float tempMax = -10;
-                        int tempMaxNumber = 0;
-                        for (int i = 0; i < 3; i++) {
-                            if (outputs[i] > tempMax) {tempMax = outputs[i];tempMaxNumber = i; }
+                    curZone=6; //状态为连接态
+                    initNode();
+                    if (awakeState == 0) {//判断是否唤醒节点
+                        if( Nodes[0].rssi_filtered<80 ){
+                            curZone=5;
+                            awakeState=1;
                         }
-                        tempMaxNumber=tempMaxNumber+1;
-                        // decide when to change the current zone
-                        if ((outputs[0]>8&tempMaxNumber==1)
-                                ||(outputs[1]>0&tempMaxNumber==2)
-                                ||(outputs[2]>0)&tempMaxNumber==3){
-                            curZone=tempMaxNumber;
-                        }
-                        // some strict conditions to change the zone
-                        if(Nodes[0].rssi_filtered<58){
-                            curZone=1;
-                        }
+                    }
 
-                        for(int i=1;i<7;i++){
-                            if (Nodes[i].rssi_filtered<55 & i!=3){
-                                curZone=1;
-                            }
-                            if (Nodes[i].rssi_filtered<50 & i==3) {
-                                curZone=1;
-                            }
-                        }
+                    if (awakeState==1) {//唤醒态可判断位置
 
-                        // determine whether the phone in the car
-                        double max_inside=0;
-                        int max_inside_node=0;
+                        //region  利用定位算法判断位置
+                        // 1. perform the tensorflow model
+                        // 2. perform Lookup table
+                        preTF_xy.Storage(Nodes);
+                        float []a = preTF_xy.getPredict();
+                        curX=(int)(a[0]*800);
+                        curY=(int)(a[1]*800);
+                        switch (DECISIONTYPE) {
+                            case 1:
+                                float[] outputs = new float[1];
+                                switch (CARCONFIGTYPE) {
+                                    case 1:
+                                        preTF_zone.Storage(Nodes);
+                                        outputs = preTF_zone.getPredict();
+                                        if (distanceFilter == null)
+                                            distanceFilter = new KalmanFilter_distance();
 
-                        for (int i=7;i<=8;i++){
-                            // find the maximal value of anchors inside the car and the mininal value of anchors outside the car,
-                            // if the maximal value is still smaller than  minimal value, the phone is in the car
-                            if (Nodes[i].rssi_filtered>max_inside){
-                                max_inside_node=i;
-                                max_inside=Nodes[i].rssi_filtered;
-                            }
-                        }
+                                        break;
+                                    case 2:
 
-                        double min_outside=100;
-                        int max_outside_node=0;
 
-                        for (int i=1;i<=6;i++) {
-                            if (Nodes[i].rssi_filtered < min_outside) {
-                                max_outside_node = i;
-                                min_outside = Nodes[i].rssi_filtered;
-                            }
-                        }
-                        if (Nodes[0].rssi_filtered<=48 || (Nodes[0].rssi_filtered>48 &&(Nodes[7].rssi_filtered<=56 ||
-                                Nodes[8].rssi_filtered<=56|| Nodes[9].rssi_filtered<=54)) ||
-                                (max_inside<min_outside && distanceValue==0&&curZone<=1))
-                        {
-                            curZone=0;
-                        }
+                                        break;
 
-                        // create a buffer for zone change
-                        curZoneOutput=outputs;
-                        for (int i=0;i<4;i++){
-                            zonebuffer[i]=zonebuffer[i+1];
+                                    default:
+                                        outputs[0] = 0;
+                                        break;
 
+                                }
+                                outputs[0] = (float) distanceFilter.FilteredRSSI(outputs[0], true);
+
+                                distance = outputs[0]*5;
+                                if (distance < (float) SettingFragment.unlockDis / 10)
+                                    curZone = 1;
+                                else if (distance > (float) SettingFragment.lockDis / 10)
+                                    curZone = 3;
+                                else curZone = 2;
+                                if (Nodes[0].rssi_filtered < 60) curZone = 1;
+                                int temp = luTpredictionTop.PEPS_s32CaliFunction(Nodes);
+                                if (temp == 0)
+                                    curZone = 0;
+                                break;
+                            case 2:
+                                switch (CARCONFIGTYPE) {
+                                    case (1):
+
+                                }
+                                curZone = luTpredictionTop.PEPS_s32CaliFunction(Nodes);
+                                break;
                         }
-                        zonebuffer[4]=curZone;
-                        int zonesum= zonebuffer[0]+zonebuffer[1]+zonebuffer[2]+zonebuffer[3]+zonebuffer[4];
-                        if (zonesum==15 ||zonesum==5 ||zonesum==10||curZone==0){
-                            curZone_filtered=curZone;
-                        }
+                        //endregion
+                    }
+                    curZoneDebounced=zoneDebounce.DebouncedZone(curZone);
+
+
                     }
             };
         }
@@ -538,13 +560,11 @@ public class ScanFragment extends BaseFragment {
                     }else{
                         I[4]=0;
                     }
-                    I[5]=(int)gravityValue[0]*10+100;
-                    I[6]=(int)gravityValue[1]*10+100;
-                    I[7]=(int)gravityValue[2]*10+100;
 
-                    //I[5] = (int)Nodes[0].RSSI_filtered;
-                    //I[6]=(int)Nodes[1].RSSI_filtered;
-                    //I[7] = (int)Nodes[2].RSSI_filtered;
+
+                    I[5] = (int)Nodes[0].rssi_filtered;
+                    I[6]=(int)Nodes[1].rssi_filtered;
+                    I[7] = (int)Nodes[2].rssi_filtered;
                     I[8]=(int)Nodes[3].rssi_filtered;
                     I[9]=(int)Nodes[4].rssi_filtered;
                     I[10]=(int)Nodes[5].rssi_filtered;
@@ -660,14 +680,14 @@ public class ScanFragment extends BaseFragment {
     public void setUIBleState(boolean bleScanState,boolean bleConenctState){
 
         if(bleScanState){
-            imgScan.setImageResource(R.mipmap.greenicon);
+            imgScan.setImageResource(R.drawable.greenicon);
         }else {
-            imgScan.setImageResource(R.mipmap.redicon2);
+            imgScan.setImageResource(R.drawable.redicon2);
         }
         if (bleConenctState){
-            imgConnect.setImageResource(R.mipmap.greenicon);
+            imgConnect.setImageResource(R.drawable.greenicon);
         }else {
-            imgConnect.setImageResource(R.mipmap.redicon2);
+            imgConnect.setImageResource(R.drawable.redicon2);
         }
     }
 }
