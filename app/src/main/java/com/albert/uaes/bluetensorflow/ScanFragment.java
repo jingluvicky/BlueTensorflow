@@ -68,10 +68,10 @@ public class ScanFragment extends BaseFragment {
 
     public static float[] linearAccValue,gravityValue,gyroValue,acceleroValue;
 
-    public WrapRssiData wrapRssiData;
+    public static WrapRssiData wrapRssiData;
 
 
-
+    public static Node[] Nodes=new Node[13];
 
     public static float distanceValue,light;
 
@@ -291,10 +291,8 @@ public class ScanFragment extends BaseFragment {
 
                         if (PocketDetector.inPocket(gravityValue, distanceValue, light)) {
                             curPocketState = 1;
-                            Log.i("sensor_--->","在口袋");
                         } else {
                             curPocketState = 0;
-                            Log.i("sensor_--->","不在口袋");
                         }
                         preTF_motion.Storage(gyroValue, linearAccValue, acceleroValue);
                         float[] outputs = preTF_motion.getPredict();
@@ -591,7 +589,7 @@ public class ScanFragment extends BaseFragment {
 
     private void readWrapRssiData() {
         Integer mainRssi = wrapRssiData.getMainRssi();
-        byte[] nodeRssi = wrapRssiData.getRssi();
+        int[] nodeRssi = wrapRssiData.getRssi();
         if (mainRssi != null){
             if (Nodes[0]==null) {
                 Nodes[0]=new Node();

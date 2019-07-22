@@ -4,7 +4,9 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
+import android.widget.Switch;
 import android.widget.Toast;
 
 public class ControlFragment extends BaseFragment {
@@ -14,6 +16,8 @@ public class ControlFragment extends BaseFragment {
     private ImageView btn_UnLock;
     private ImageView btn_Panic;
     private ImageView btn_trunkunlock;
+    private Switch switch_record;
+    public boolean isRecord=false;
 
     public static ControlFragment newInstance() {
 
@@ -27,7 +31,7 @@ public class ControlFragment extends BaseFragment {
     @Override
     protected void init(View view, Bundle savedInstanceState) {
         mysendCMD = (ControlFragment.SendCMD)getActivity();
-
+        switch_record=view.findViewById(R.id.switch_record);
         btn_Lock = view.findViewById(R.id.btn_Lock);
         btn_UnLock = view.findViewById(R.id.btn_UnLock);
         btn_Panic = view.findViewById(R.id.btn_Panic);

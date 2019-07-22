@@ -3,11 +3,12 @@ package com.albert.uaes.bluetensorflow.service;
 import java.io.Serializable;
 
 public class WrapRssiData implements Serializable {
-    private int mainRssi;
-    private byte[] rssi;
+    private int mainRssi=0;
+    private int[] rssi={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
-    public WrapRssiData(int mainRssi, byte[] rssi) {
+    public WrapRssiData(int mainRssi, int[] rssi) {
         this.mainRssi = mainRssi;
+
         this.rssi = rssi;
     }
 
@@ -19,11 +20,11 @@ public class WrapRssiData implements Serializable {
         this.mainRssi = mainRssi;
     }
 
-    public byte[] getRssi() {
+    public int[] getRssi() {
         return rssi;
     }
 
-    public void setRssi(byte[] rssi) {
+    public void setRssi(int[] rssi) {
         this.rssi = rssi;
     }
 }

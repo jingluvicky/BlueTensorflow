@@ -5,10 +5,13 @@ import android.os.Handler;
 import android.os.Message;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import com.albert.uaes.bluetensorflow.net.BleDisconnectEvent;
+import com.albert.uaes.bluetensorflow.service.MyService;
 import com.albert.uaes.bluetensorflow.utils.ThreadPoolManager;
 
 import org.greenrobot.eventbus.EventBus;
@@ -16,6 +19,8 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.concurrent.TimeUnit;
+
+import static com.albert.uaes.bluetensorflow.service.MyService.START_RECORD;
 
 public class SettingFragment extends BaseFragment {
 
@@ -28,9 +33,9 @@ public class SettingFragment extends BaseFragment {
     private ImageView img_connect;
     private TextView txt_unlockdis,txt_lockdis,txt_zone,txt_trend;
     private Button btn_left,btn_right,btn_front,btn_rear,btn_unlockminus,btn_unlockplus,btn_lockminus,btn_lockplus;
-
+    private Switch switch_record;
     private final static int UPDATE_UI = 0;
-
+    public static boolean isRecord=false;
     private Runnable updateUiRunnable;
 
 
@@ -44,6 +49,7 @@ public class SettingFragment extends BaseFragment {
             }
         }
     };
+
 
     public static SettingFragment newInstance() {
 
@@ -61,6 +67,18 @@ public class SettingFragment extends BaseFragment {
         imgConnectlocation = view.findViewById(R.id.img_connectlocation);
         imgWalk = view.findViewById(R.id.img_walk);
         imgPocket = view.findViewById(R.id.img_pocket);
+        switch_record=view.findViewById(R.id.switch_record);
+
+        switch_record.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    isRecord = true;
+                 } else {
+                    isRecord = false;
+                }
+            }
+        });
 
     }
 

@@ -44,10 +44,13 @@ import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.albert.uaes.bluetensorflow.LocationOutputFragment;
 import com.albert.uaes.bluetensorflow.MainActivity;
 import com.albert.uaes.bluetensorflow.R;
 import com.albert.uaes.bluetensorflow.ScanFragment;
+import com.albert.uaes.bluetensorflow.SettingFragment;
 import com.albert.uaes.bluetensorflow.utils.FileUtils;
+import com.albert.uaes.bluetensorflow.utils.ThreadPoolManager;
 import com.albert.uaes.tensorflowlibrary.model.Node;
 
 import java.io.File;
@@ -62,6 +65,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 public class MyService extends Service implements SensorEventListener {
 
@@ -115,6 +119,10 @@ public class MyService extends Service implements SensorEventListener {
 
     public static final int BLE_OLD_ADVERTISE_STOP = 0xabc0008;
 
+    public static final int START_RECORD = 0xabc0009;
+
+
+
     private List<BluetoothDevice> bluetoothDevices;
 
     private File file,connectFile;
@@ -131,8 +139,8 @@ public class MyService extends Service implements SensorEventListener {
     private AdvertisingSet currentAdvertisingSet;
 
     public byte[] dataReceived=new byte[13];
+    public WrapRssiData wrapRssiData;
 
-    public Node[] Nodes = new Node[12];
 
     private SensorManager sensorManager;
     private Sensor sensor;
@@ -284,6 +292,7 @@ public class MyService extends Service implements SensorEventListener {
                 case BLE_OLD_ADVERTISE_STOP:
                     stopOldAdvertise();
                     break;
+
                 default:
                     break;
             }
@@ -315,13 +324,18 @@ public class MyService extends Service implements SensorEventListener {
             SimpleDateFormat format = new SimpleDateFormat("MM.dd HH_mm_ss");
             file = FileUtils.getInstance().createFile(format.format(new Date()) + ".txt");
             connectFile = FileUtils.getInstance().createFile(format.format(new Date())+"connect.txt");
-
             connectFos = new FileOutputStream(connectFile);
+            writeConnectDataTofile(MAC_ADDRESS+"onConnectionStateChange: Disconnecting");
+
             fos = new FileOutputStream(file);
+            writeSensorDataTofile();
+
         } catch (IOException e) {
             e.printStackTrace();
         }
+        if (SettingFragment.isRecord){
 
+        }
         bluetoothDevices = new ArrayList<>();
 
 //        initialize();
@@ -561,7 +575,11 @@ public class MyService extends Service implements SensorEventListener {
 
     private void broadcastRssiData(final String action,int mainRssi, byte[] dataReceived){
         final Intent intent = new Intent(action);
-        WrapRssiData wrapRssiData = new WrapRssiData(mainRssi,dataReceived);
+        int[]dataReceivedInt=new int[15];
+        for (int i=0;i<dataReceived.length;i++){
+            dataReceivedInt[i]=(int)dataReceived[i];
+        }
+        WrapRssiData wrapRssiData = new WrapRssiData(mainRssi,dataReceivedInt);
         intent.putExtra("data",wrapRssiData);
         sendBroadcast(intent);
     }
@@ -797,22 +815,99 @@ public class MyService extends Service implements SensorEventListener {
         }
     }
 
-//    public void writeConnectDataTofile(final String content){
-//        new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                Log.d("<------>","recordConnectData start");
-//                byte [] buffer = (content+"\n").getBytes();
-//                try {
-//                    connectFos.write(buffer);
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//                Log.d("<------>","recordConnectData end");
-//            }
-//        }).start();
-//
-//    }
+    public void writeConnectDataTofile(final String content){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Log.d("<------>","recordConnectData start");
+                byte [] buffer = (content+"\n").getBytes();
+                try {
+                    connectFos.write(buffer);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                Log.d("<------>","recordConnectData end");
+            }
+        }).start();
+
+    }
+
+    public void writeSensorDataTofile(){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(true){
+                    if (SettingFragment.isRecord) {
+                        Log.d("<------>", "record start");
+                        if (startTimestamp == 0) {
+                            startTimestamp = System.currentTimeMillis();
+                        }
+
+                        long tTemp = System.currentTimeMillis() - startTimestamp;
+                        //serialNumber|Time|
+                        String ss = Long.toString(serialNumber) + '\t'; //SerialNumber
+                        ss += Long.toString(tTemp) + "\t"; //Timestamp
+                        //加速度传感器 x y z m/s^2
+                        ss += Float.toString(accelerometerValues[0]) + '\t' + Float.toString(accelerometerValues[1]) + '\t' + Float.toString(accelerometerValues[2]) + '\t';
+                        //陀螺仪 rad/s x y z
+                        ss += Float.toString(gyroscopeValues[0]) + '\t' + Float.toString(gyroscopeValues[1]) + '\t' + Float.toString(gyroscopeValues[2]) + '\t';
+                        //磁场强度   x y z uH
+                        ss += Float.toString(magneticValues[0]) + '\t' + Float.toString(magneticValues[1]) + '\t' + Float.toString(magneticValues[2]) + '\t';
+                        //重力传感器 x y z m/s^2
+                        ss += Float.toString(gravityValues[0]) + '\t' + Float.toString(gravityValues[1]) + '\t' + Float.toString(gravityValues[2]) + '\t';
+                        //障碍物距离 cm
+                        ss += Float.toString(proximityValues) + '\t';
+                        //光强  lx
+                        ss += Float.toString(lightValues) + '\t';
+                        //方向 x y z m/s^2
+                        ss += Float.toString(rotationValues[0]) + '\t' + Float.toString(rotationValues[1]) + '\t' + Float.toString(rotationValues[2]) + '\t';
+                        //线性加速度传感器 x y z
+                        ss += Float.toString(linearaccelerationValues[0]) + '\t' + Float.toString(linearaccelerationValues[1]) + '\t' + Float.toString(linearaccelerationValues[2]) + '\t';
+                        //主蓝牙模块场强
+                        ss += Integer.toString((int) ScanFragment.Nodes[0].rssi_filtered) + '\t';
+                        //辅模块1场强
+                        ss += Integer.toString((int) ScanFragment.Nodes[1].rssi_filtered) + '\t';
+                        //辅模块2场强
+                        ss += Integer.toString((int) ScanFragment.Nodes[2].rssi_filtered) + '\t';
+                        //辅模块3场强
+                        ss += Integer.toString((int) ScanFragment.Nodes[3].rssi_filtered) + '\t';
+                        //辅模块4场强
+                        ss += Integer.toString((int) ScanFragment.Nodes[4].rssi_filtered) + '\t';
+                        //辅模块5场强
+                        ss += Integer.toString((int) ScanFragment.Nodes[5].rssi_filtered) + '\t';
+                        //辅模块6场强
+                        ss += Integer.toString((int) ScanFragment.Nodes[6].rssi_filtered) + '\t';
+                        //辅模块7场强
+                        ss += Integer.toString((int) ScanFragment.Nodes[7].rssi_filtered) + '\t';
+                        //辅模块8场强
+                        ss += Integer.toString((int) ScanFragment.Nodes[8].rssi_filtered) + '\t';
+                        //辅模块9场强
+                        ss += Integer.toString((int) ScanFragment.Nodes[9].rssi_filtered) + '\n';
+                        //辅模块2场强
+
+                        //Zone
+                        byte[] buffer = ss.getBytes();
+                        Log.d(TAG," write to folie");
+                        try {
+                            fos.write(buffer);
+
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }else{
+                        Log.d(TAG, "stop write to folie");
+                    }
+                try{
+                    Thread.sleep(100);
+                }catch(InterruptedException e){
+                    e.printStackTrace();
+                }
+                Log.d("<------>","recordConnectData end");
+            }
+            }
+        }).start();
+
+    }
 
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -861,7 +956,7 @@ public class MyService extends Service implements SensorEventListener {
                 gravityBuffer[0][0]=event.values[0];
                 gravityBuffer[0][1]=event.values[1];
                 gravityBuffer[0][2]=event.values[2];
-                updateFilteredGravity();
+
                 break;
             case Sensor.TYPE_PROXIMITY:
                 proximityValues=event.values[0];
@@ -871,7 +966,7 @@ public class MyService extends Service implements SensorEventListener {
 
                 }
                 proximityBuffer[0]=event.values[0];
-                updateFilteredProximity();
+
 
                 ScanFragment.distanceValue=proximityValues;
                 break;
@@ -895,27 +990,6 @@ public class MyService extends Service implements SensorEventListener {
             default:
                 break;
         }
-    }
-
-    public void updateFilteredGravity(){
-
-        float tmpX=0;
-        float tmpY=0;
-        float tmpZ=0;
-        for(int i=0;i<FILTERWND;i++)
-        {
-            tmpX+=gravityBuffer[i][0];
-            tmpY+=gravityBuffer[i][1];
-            tmpZ+=gravityBuffer[i][2];
-        }
-        filteredGravity[0]=tmpX/FILTERWND;
-        filteredGravity[1]=tmpY/FILTERWND;
-        filteredGravity[2]=tmpZ/FILTERWND;
-
-    }
-
-    public void updateFilteredProximity() {
-        filteredProximity=proximityBuffer[0];
     }
 
 
@@ -969,63 +1043,8 @@ public class MyService extends Service implements SensorEventListener {
         }
         Log.d("Func", "setSensors() Finish");
     }
-    public void writeSensorDataTofile(){
 
-        if (startTimestamp == 0) {
-            startTimestamp = System.currentTimeMillis();}
 
-        long tTemp=System.currentTimeMillis()-startTimestamp;
-        //serialNumber|Time|
-        String ss =Long.toString(serialNumber)+'\t'; //SerialNumber
-        ss += Long.toString(tTemp) + "\t"; //Timestamp
-        //加速度传感器 x y z m/s^2
-        ss += Float.toString(accelerometerValues[0])+'\t'+Float.toString(accelerometerValues[1])+'\t'+Float.toString(accelerometerValues[2])+'\t';
-        //陀螺仪 rad/s x y z
-        ss += Float.toString(gyroscopeValues[0])+'\t'+Float.toString(gyroscopeValues[1])+'\t'+Float.toString(gyroscopeValues[2])+'\t';
-        //磁场强度   x y z uH
-        ss += Float.toString(magneticValues[0])+'\t'+Float.toString(magneticValues[1])+'\t'+Float.toString(magneticValues[2])+'\t';
-        //重力传感器 x y z m/s^2
-        ss += Float.toString(gravityValues[0])+'\t'+Float.toString(gravityValues[1])+'\t'+Float.toString(gravityValues[2])+'\t';
-        //障碍物距离 cm
-        ss += Float.toString(proximityValues)+'\t';
-        //光强  lx
-        ss += Float.toString(lightValues)+'\t';
-        //方向 x y z m/s^2
-        ss += Float.toString(rotationValues[0])+'\t'+Float.toString(rotationValues[1])+'\t'+Float.toString(rotationValues[2])+'\t';
-        //线性加速度传感器 x y z
-        ss += Float.toString(linearaccelerationValues[0])+'\t'+Float.toString(linearaccelerationValues[1])+'\t'+Float.toString(linearaccelerationValues[2])+'\t';
-        //主蓝牙模块场强
-        ss +=Integer.toString()+'\t';
-        //辅模块1场强
-        ss +=Integer.toString(assistRSSIValue_1)+'\t';
-        //辅模块2场强
-        ss +=Integer.toString(assistRSSIValue_2)+'\t';
-        //辅模块3场强
-        ss +=Integer.toString(assistRSSIValue_3)+'\t';
-        //辅模块4场强
-        ss +=Integer.toString(assistRSSIValue_4)+'\t';
-        //辅模块5场强
-        ss +=Integer.toString(assistRSSIValue_5)+'\t';
-        //辅模块6场强
-        ss +=Integer.toString(assistRSSIValue_6)+'\t';
-        //辅模块7场强
-        ss +=Integer.toString(assistRSSIValue_7)+'\t';
-        //辅模块8场强
-        ss +=Integer.toString(assistRSSIValue_8)+'\t';
-        //辅模块9场强
-        ss +=Integer.toString(assistRSSIValue_9)+'\t';
-        //辅模块2场强
-        ss +=Integer.toString(assistRSSIValidity_1)+'\t'+Integer.toString(assistRSSIValidity_2)+'\t'+Integer.toString(assistRSSIValidity_3)+'\t'+Integer.toString(assistRSSIValidity_4)+'\t'+Integer.toString(assistRSSIValidity_5)+'\t'+Integer.toString(assistRSSIValidity_6)+'\t'+Integer.toString(assistRSSIValidity_7)+'\t'+Integer.toString(assistRSSIValidity_8)+"\t";
-        //Zone
-        ss +=Integer.toString(zoneNum)+'\t'+Integer.toString(motion)+"\n";
-        byte [] buffer = ss.getBytes();
-        try {
-            fos.write(buffer);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        serialNumber++;
-    }
 
 
     public void writeValue(byte[] atemp) {
