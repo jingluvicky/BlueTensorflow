@@ -1,5 +1,6 @@
 package com.albert.uaes.bluetensorflow;
 
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -32,11 +33,12 @@ public class SettingFragment extends BaseFragment {
     private ImageView img_zone0,img_zone1,img_zone3,img_zone4,img_zone5,img_zone6;
     private ImageView img_connect;
     private TextView txt_unlockdis,txt_lockdis,txt_zone,txt_trend;
-    private Button btn_left,btn_right,btn_front,btn_rear,btn_unlockminus,btn_unlockplus,btn_lockminus,btn_lockplus;
+    private Button btn_1,btn_2,btn_3,btn_4,btn_unlockminus,btn_unlockplus,btn_lockminus,btn_lockplus;
     private Switch switch_record;
     private final static int UPDATE_UI = 0;
     public static boolean isRecord=false;
     private Runnable updateUiRunnable;
+    public static int sensorTag=0;
 
 
     private Handler handler = new Handler(){
@@ -68,7 +70,10 @@ public class SettingFragment extends BaseFragment {
         imgWalk = view.findViewById(R.id.img_walk);
         imgPocket = view.findViewById(R.id.img_pocket);
         switch_record=view.findViewById(R.id.switch_record);
-
+        btn_1=view.findViewById(R.id.btn_1);
+        btn_2=view.findViewById(R.id.btn_2);
+        btn_3=view.findViewById(R.id.btn_3);
+        btn_4=view.findViewById(R.id.btn_4);
         switch_record.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -79,6 +84,46 @@ public class SettingFragment extends BaseFragment {
                 }
             }
         });
+        btn_1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                sensorTag=1;
+                btn_1.setBackgroundColor(Color.parseColor("#FFE7BA"));
+                btn_2.setBackgroundColor(0);
+                btn_3.setBackgroundColor(0);
+                btn_4.setBackgroundColor(0);
+            }
+        });
+        btn_2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                sensorTag=2;
+                btn_2.setBackgroundColor(Color.parseColor("#FFE7BA"));
+                btn_1.setBackgroundColor(0);
+                btn_3.setBackgroundColor(0);
+                btn_4.setBackgroundColor(0);
+            }
+        });
+        btn_3.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                sensorTag=3;
+                btn_3.setBackgroundColor(Color.parseColor("#FFE7BA"));
+                btn_2.setBackgroundColor(0);
+                btn_1.setBackgroundColor(0);
+                btn_4.setBackgroundColor(0);
+            }
+        }); btn_4.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                sensorTag=4;
+                btn_4.setBackgroundColor(Color.parseColor("#FFE7BA"));
+                btn_2.setBackgroundColor(0);
+                btn_3.setBackgroundColor(0);
+                btn_1.setBackgroundColor(0);
+            }
+        });
+
 
     }
 

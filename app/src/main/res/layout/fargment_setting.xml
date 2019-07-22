@@ -313,36 +313,36 @@
         android:orientation="horizontal">
 
         <Button
-            android:id="@+id/btn_uwbleft"
-            android:layout_width="wrap_content"
+            android:id="@+id/btn_1"
+            android:layout_width="99dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Left"
-            android:visibility="invisible" />
+            android:text="静止"
+            android:visibility="visible" />
 
         <Button
-            android:id="@+id/btn_uwbfront"
+            android:id="@+id/btn_2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Front"
-            android:visibility="invisible" />
+            android:text="手持走路"
+            android:visibility="visible" />
 
         <Button
-            android:id="@+id/btn_uwbright"
+            android:id="@+id/btn_3"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Right"
-            android:visibility="invisible" />
+            android:text="前口袋走路"
+            android:visibility="visible" />
 
         <Button
-            android:id="@+id/btn_uwbrear"
+            android:id="@+id/btn_4"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Rear"
-            android:visibility="invisible" />
+            android:text="后口袋走路"
+            android:visibility="visible" />
     </LinearLayout>
 
     <LinearLayout

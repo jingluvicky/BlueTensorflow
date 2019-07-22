@@ -882,9 +882,9 @@ public class MyService extends Service implements SensorEventListener {
                         //辅模块8场强
                         ss += Integer.toString((int) ScanFragment.Nodes[8].rssi_filtered) + '\t';
                         //辅模块9场强
-                        ss += Integer.toString((int) ScanFragment.Nodes[9].rssi_filtered) + '\n';
+                        ss += Integer.toString((int) ScanFragment.Nodes[9].rssi_filtered) + '\t';
                         //辅模块2场强
-
+                        ss+=Integer.toString(SettingFragment.sensorTag)+ '\n';
                         //Zone
                         byte[] buffer = ss.getBytes();
                         Log.d(TAG," write to folie");
