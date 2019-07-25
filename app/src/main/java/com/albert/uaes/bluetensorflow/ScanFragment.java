@@ -31,9 +31,9 @@ import com.albert.uaes.tensorflowlibrary.admin.PEPSDirector;
 import com.albert.uaes.tensorflowlibrary.admin.PEPSImplBuilder;
 import com.albert.uaes.tensorflowlibrary.tf.KalmanFilter_distance;
 import com.albert.uaes.tensorflowlibrary.tf.PocketDetector;
+import com.albert.uaes.tensorflowlibrary.tf.PredictionTF_distance0711;
 import com.albert.uaes.tensorflowlibrary.tf.PredictionTF_motion;
 import com.albert.uaes.tensorflowlibrary.tf.PredictionTF_xy;
-import com.albert.uaes.tensorflowlibrary.tf.PredictionTF_zone;
 import com.albert.uaes.tensorflowlibrary.model.Node;
 import com.albert.uaes.tensorflowlibrary.tf.LUTprediction_top;
 import com.albert.uaes.tensorflowlibrary.tf.ZoneDebounce;
@@ -64,7 +64,7 @@ public class ScanFragment extends BaseFragment {
     public float[] curMotionOutput,curZoneOutput;
 
     private PredictionTF_motion preTF_motion;
-    private PredictionTF_zone preTF_zone;
+    private PredictionTF_distance0711 preTF_zone;
     PredictionTF_xy preTF_xy;
     LUTprediction_top luTpredictionTop =new LUTprediction_top(); //Lookup table
     ZoneDebounce zoneDebounce=new ZoneDebounce();
@@ -72,7 +72,7 @@ public class ScanFragment extends BaseFragment {
 
     public int CMDCounter;
     public int CMDValue;
-    public static int curMotion=255,curZone=255,curLeftRight=255,curZoneDebounced,curZone_filtered=255,curPocketState,awakeState=0,curX=0,curY=0;;
+    public static int curMotion=255,curZone=255,curLeftRight=255,curZoneDebounced,curZone_filtered=255,curPocketState,awakeState=0,curX=0,curY=0,decisiontype=0;
 
     public static float[] linearAccValue,gravityValue,gyroValue,acceleroValue;
 
@@ -207,7 +207,7 @@ public class ScanFragment extends BaseFragment {
             switches[i] = true;
         }
         preTF_motion=new PredictionTF_motion(this.getContext().getAssets());
-        preTF_zone = new PredictionTF_zone(this.getContext().getAssets());
+        preTF_zone = new PredictionTF_distance0711(this.getContext().getAssets());
 
         aSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -410,16 +410,15 @@ public class ScanFragment extends BaseFragment {
                                     curZone = 3;
                                 else curZone = 2;
                                 if (Nodes[0].rssi_filtered < 60) curZone = 1;
-                                int temp = luTpredictionTop.PEPS_s32CaliFunction(Nodes);
-                                if (temp == 0)
-                                    curZone = 0;
+                                int temp = luTpredictionTop.PEPS_s32CaliFunction(Nodes,curPocketState);
+                                if (temp <= 1)
+                                    curZone = temp;
                                 break;
                             case 2:
                                 switch (CARCONFIGTYPE) {
                                     case (1):
-
                                 }
-                                curZone = luTpredictionTop.PEPS_s32CaliFunction(Nodes);
+                                curZone = luTpredictionTop.PEPS_s32CaliFunction(Nodes,curPocketState);
                                 break;
                         }
                         //endregion

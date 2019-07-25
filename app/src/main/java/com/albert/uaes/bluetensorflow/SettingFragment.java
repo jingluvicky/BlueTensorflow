@@ -36,6 +36,7 @@ public class SettingFragment extends BaseFragment {
     private Button btn_1,btn_2,btn_3,btn_4,btn_rear,btn_front,btn_left,btn_right;
     Button btn_unlockminus,btn_unlockplus,btn_lockminus,btn_lockplus;
 
+    private Switch switch_type;
     private Switch switch_record;
     private final static int UPDATE_UI = 0;
 
@@ -75,6 +76,7 @@ public class SettingFragment extends BaseFragment {
         imgWalk = view.findViewById(R.id.img_walk);
         imgPocket = view.findViewById(R.id.img_pocket);
         switch_record=view.findViewById(R.id.switch_record);
+        switch_type=view.findViewById(R.id.switch_type);
         btn_1=view.findViewById(R.id.btn_1);
         btn_2=view.findViewById(R.id.btn_2);
         btn_3=view.findViewById(R.id.btn_3);
@@ -134,6 +136,14 @@ public class SettingFragment extends BaseFragment {
                     isRecord = true;
                  } else {
                     isRecord = false;
+                }
+            }
+        });
+        switch_type.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked){
+                    ScanFragment.
                 }
             }
         });
