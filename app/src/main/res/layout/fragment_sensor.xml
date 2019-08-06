@@ -243,7 +243,8 @@
                     android:id="@+id/txt_remark"
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
-                    android:hint="Remark" />
+                    android:hint="Remark"
+                    android:text="-" />
             </android.support.design.widget.TextInputLayout>
 
         </LinearLayout>

@@ -887,7 +887,8 @@ public class MyService extends Service implements SensorEventListener {
                         ss+=SensorFragment.model+'\t';
                         ss+=SensorFragment.position+'\t';
                         ss+=SensorFragment.motion+'\t';
-                        ss+=SensorFragment.location+'\n';
+                        ss+=SensorFragment.location+'\t';
+                        ss+=SensorFragment.remark+'\n';
                         //Zone
                         byte[] buffer = ss.getBytes();
                         SensorFragment.recordtime=SensorFragment.recordtime-1;

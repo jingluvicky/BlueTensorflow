@@ -8,6 +8,7 @@
         <item>ZHR</item>
         <item>CYL</item>
         <item>LJ</item>
+        <item>ZYL</item>
         <item>fill out manually</item>
     </string-array>
 
@@ -15,12 +16,14 @@
         <item>-</item>
     <item>Honor Mate 20Pro</item>
     <item>Mi 8</item>
+        <item>Mi 9</item>
     <item>fill out manually</item>
     </string-array>
 
     <string-array name="position_array">
         <item>-</item>
-        <item>in hand</item>
+        <item>play in hand</item>
+        <item>wave in hand</item>
         <item>answering the phone</item>
         <item>front pocket</item>
         <item>rear pocket</item>
