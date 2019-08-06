@@ -21,6 +21,7 @@ public class MainActivity extends AppCompatActivity implements ControlFragment.S
     private SettingFragment settingFragment;
     private LocationOutputFragment locationOutputFragment;
     private ScanFragment scanFragment;
+    private SensorFragment sensorFragment;
 
     private List<Fragment> fragmentList;
     private TabFragmentAdapter tabFragmentAdapter;
@@ -48,12 +49,12 @@ public class MainActivity extends AppCompatActivity implements ControlFragment.S
         settingFragment = SettingFragment.newInstance();
         scanFragment = ScanFragment.newInstance();
         locationOutputFragment=LocationOutputFragment.newInstance();
-
+        sensorFragment=SensorFragment.newInstance();
         fragmentList.add(controlFragment);
         fragmentList.add(shareFragment);
         fragmentList.add(settingFragment);
         fragmentList.add(scanFragment);
-        fragmentList.add(locationOutputFragment);
+        fragmentList.add(sensorFragment);
 
 
         iconImg.add(R.drawable.tab_control_selector);

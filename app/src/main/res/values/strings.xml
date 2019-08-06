@@ -1,3 +1,48 @@
 <resources>
     <string name="app_name">PEPS</string>
+
+    <string-array name="name_array">
+        <item>-</item>
+        <item>DZB</item>
+        <item>QYL</item>
+        <item>ZHR</item>
+        <item>CYL</item>
+        <item>LJ</item>
+        <item>fill out manually</item>
+    </string-array>
+
+    <string-array name="model_array">
+        <item>-</item>
+    <item>Honor Mate 20Pro</item>
+    <item>Mi 8</item>
+    <item>fill out manually</item>
+    </string-array>
+
+    <string-array name="position_array">
+        <item>-</item>
+        <item>in hand</item>
+        <item>answering the phone</item>
+        <item>front pocket</item>
+        <item>rear pocket</item>
+        <item>in bag</item>
+        <item>fill out manually</item>
+    </string-array>
+
+    <string-array name="motion_array">
+        <item>-</item>
+        <item>non-walk</item>
+        <item>walk</item>
+        <item>run</item>
+        <item>take out from pocket</item>
+        <item>put into pocket</item>
+        <item>fill out manually</item>
+    </string-array>
+    <string-array name="location_array">
+        <item>-</item>
+        <item>indoor</item>
+        <item>outdoor</item>
+        <item>garage</item>
+        <item>fill out manually</item>
+    </string-array>
+
 </resources>

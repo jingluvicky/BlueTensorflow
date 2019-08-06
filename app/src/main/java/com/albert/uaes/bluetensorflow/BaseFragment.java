@@ -11,7 +11,7 @@ import com.albert.uaes.bluetensorflow.service.MyService;
 
 public abstract class BaseFragment extends Fragment {
 
-    public MyService myService;
+    public static MyService myService;
 
     private View mRootView;
 

@@ -48,6 +48,7 @@ import com.albert.uaes.bluetensorflow.LocationOutputFragment;
 import com.albert.uaes.bluetensorflow.MainActivity;
 import com.albert.uaes.bluetensorflow.R;
 import com.albert.uaes.bluetensorflow.ScanFragment;
+import com.albert.uaes.bluetensorflow.SensorFragment;
 import com.albert.uaes.bluetensorflow.SettingFragment;
 import com.albert.uaes.bluetensorflow.utils.FileUtils;
 import com.albert.uaes.bluetensorflow.utils.ThreadPoolManager;
@@ -311,6 +312,13 @@ public class MyService extends Service implements SensorEventListener {
         return mBinder;
     }
 
+    public void createFile(String name){
+
+
+            writeSensorDataTofile();
+
+
+    }
 
     @Override
     public void onCreate() {
@@ -320,22 +328,8 @@ public class MyService extends Service implements SensorEventListener {
 
         initSensorDataGroup();
 
-        try {
-            SimpleDateFormat format = new SimpleDateFormat("MM.dd HH_mm_ss");
-            file = FileUtils.getInstance().createFile(format.format(new Date()) + ".txt");
-            connectFile = FileUtils.getInstance().createFile(format.format(new Date())+"connect.txt");
-            connectFos = new FileOutputStream(connectFile);
-            writeConnectDataTofile(MAC_ADDRESS+"onConnectionStateChange: Disconnecting");
+        createFile(SensorFragment.name);
 
-            fos = new FileOutputStream(file);
-            writeSensorDataTofile();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        if (SettingFragment.isRecord){
-
-        }
         bluetoothDevices = new ArrayList<>();
 
 //        initialize();
@@ -587,6 +581,7 @@ public class MyService extends Service implements SensorEventListener {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        Log.d("service","destroy");
         releaseLock();
         sensorManager.unregisterListener(this);
     }
@@ -837,7 +832,10 @@ public class MyService extends Service implements SensorEventListener {
             @Override
             public void run() {
                 while(true){
-                    if (SettingFragment.isRecord) {
+                    if ((SettingFragment.isRecord || SensorFragment.isRecord)&&SensorFragment.recordtime>0) {
+                        file=SensorFragment.file;
+                        fos=SensorFragment.fos;
+
                         Log.d("<------>", "record start");
                         if (startTimestamp == 0) {
                             startTimestamp = System.currentTimeMillis();
@@ -884,10 +882,16 @@ public class MyService extends Service implements SensorEventListener {
                         //辅模块9场强
                         ss += Integer.toString((int) ScanFragment.Nodes[9].rssi_filtered) + '\t';
                         //辅模块2场强
-                        ss+=Integer.toString(SettingFragment.uwbZone)+'\t';
-                        ss+=Integer.toString(SettingFragment.sensorTag)+ '\n';
+
+                        ss+=SensorFragment.name+'\t';
+                        ss+=SensorFragment.model+'\t';
+                        ss+=SensorFragment.position+'\t';
+                        ss+=SensorFragment.motion+'\t';
+                        ss+=SensorFragment.location+'\n';
                         //Zone
                         byte[] buffer = ss.getBytes();
+                        SensorFragment.recordtime=SensorFragment.recordtime-1;
+
                         Log.d(TAG," write to folie");
                         try {
                             fos.write(buffer);
@@ -896,10 +900,11 @@ public class MyService extends Service implements SensorEventListener {
                             e.printStackTrace();
                         }
                     }else{
-                        Log.d(TAG, "stop write to folie");
+                        SensorFragment.isRecord=false;
+                       Log.d(TAG, "stop write to folie");
                     }
                 try{
-                    Thread.sleep(20);
+                    Thread.sleep(50);
                 }catch(InterruptedException e){
                     e.printStackTrace();
                 }

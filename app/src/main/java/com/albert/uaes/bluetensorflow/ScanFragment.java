@@ -2,6 +2,7 @@ package com.albert.uaes.bluetensorflow;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -50,9 +51,9 @@ public class ScanFragment extends BaseFragment {
     private String TAG="ScanFragment";
 
     private final static int REQUEST_ENABLE_BT = 1;
-    private int BLE_OPENED = 0;
+    private int BLE_OPENED =  0;
 
-    private Switch aSwitch;
+    public static  Switch aSwitch;
     private ImageView imgScan;
     private ImageView imgConnect;
     private TextView txt_curMotion;
@@ -72,7 +73,7 @@ public class ScanFragment extends BaseFragment {
 
     public int CMDCounter;
     public int CMDValue;
-    public static int curMotion=255,curZone=255,curLeftRight=255,curZoneDebounced,curZone_filtered=255,curPocketState,awakeState=0,curX=0,curY=0,decisiontype=0;
+    public static int curMotion=255,curZone=255,curLeftRight=255,curZoneDebounced,curZone_filtered=255,curPocketState,awakeState=0,curX=0,curY=0,decisiontype=1,zoneTF=255,zoneLUT=255;
 
     public static float[] linearAccValue,gravityValue,gyroValue,acceleroValue;
 
@@ -125,7 +126,6 @@ public class ScanFragment extends BaseFragment {
                         txt_curMotion.setText("Current motion:  walking"   + " \n" + curMotionOutput[0] + " " + curMotionOutput[1] + " " + curMotionOutput[2]);
                     }else{
                         txt_curMotion.setText("Current motion: not walking" + " \n" + curMotionOutput[0] + " " + curMotionOutput[1] + " " + curMotionOutput[2]);
-
                     }
                     break;
                 case ZONECHANGE:
@@ -140,9 +140,9 @@ public class ScanFragment extends BaseFragment {
                             "A8:  " + (int) Nodes[8].rssi_filtered + "\n" +
                             "A9:  " + (int) Nodes[9].rssi_filtered + "\n"
                     );
-                    if (curZoneOutput != null) {
-                        txt_curZone.setText("Current Zone:  " + curZone + "  \n" + +curZoneOutput[0] + "  " + curZoneOutput[1] + " " + curZoneOutput[2]);
-                    }
+                  //  if (curZoneOutput != null) {
+                        txt_curZone.setText("Current Zone:  " + curZone + "\n"+distance+"  \n" );
+                    //}
                     break;
                     default:
                         break;
@@ -246,6 +246,10 @@ public class ScanFragment extends BaseFragment {
                 }else {
                     // TODO: 2019/4/10 取消扫描
                     stopConenct(false);
+                    Intent intent=new Intent(getActivity(),MyService.class);
+
+
+
                     removeRunnable();
                 }
             }
@@ -361,12 +365,14 @@ public class ScanFragment extends BaseFragment {
             zoneTFRunnable = new Runnable() {
                 @Override
                 public void run() {
+                    Log.d(TAG,"begin location");
                         // perform the tensorflow model
-                    curZone=6; //状态为连接态
-                    initNode();
+                    int curZoneTemp;
+                    curZoneTemp=6; //状态为连接态
+                    //initNode();
                     if (awakeState == 0) {//判断是否唤醒节点
                         if( Nodes[0].rssi_filtered<80 ){
-                            curZone=5;
+                            curZoneTemp=5;
                             awakeState=1;
                         }
                     }
@@ -376,11 +382,11 @@ public class ScanFragment extends BaseFragment {
                         //region  利用定位算法判断位置
                         // 1. perform the tensorflow model
                         // 2. perform Lookup table
-                        preTF_xy.Storage(Nodes);
-                        float []a = preTF_xy.getPredict();
-                        curX=(int)(a[0]*800);
-                        curY=(int)(a[1]*800);
-                        switch (DECISIONTYPE) {
+                        //preTF_xy.Storage(Nodes);
+                        //float []a = preTF_xy.getPredict();
+                        curX=0;//(int)(a[0]*800);
+                        curY=0;//(int)(a[1]*800);
+                        switch (decisiontype) {
                             case 1:
                                 float[] outputs = new float[1];
                                 switch (CARCONFIGTYPE) {
@@ -389,13 +395,9 @@ public class ScanFragment extends BaseFragment {
                                         outputs = preTF_zone.getPredict();
                                         if (distanceFilter == null)
                                             distanceFilter = new KalmanFilter_distance();
-
                                         break;
                                     case 2:
-
-
                                         break;
-
                                     default:
                                         outputs[0] = 0;
                                         break;
@@ -404,25 +406,28 @@ public class ScanFragment extends BaseFragment {
                                 outputs[0] = (float) distanceFilter.FilteredRSSI(outputs[0], true);
 
                                 distance = outputs[0]*5;
+                                zoneTF=(int)distance*10;
                                 if (distance < (float) SettingFragment.unlockDis / 10)
-                                    curZone = 1;
+                                    curZoneTemp = 1;
                                 else if (distance > (float) SettingFragment.lockDis / 10)
-                                    curZone = 3;
-                                else curZone = 2;
-                                if (Nodes[0].rssi_filtered < 60) curZone = 1;
+                                    curZoneTemp = 3;
+                                else curZoneTemp = 2;
+                                if (Nodes[0].rssi_filtered < 60) curZoneTemp = 1;
                                 int temp = luTpredictionTop.PEPS_s32CaliFunction(Nodes,curPocketState);
+                                zoneLUT=temp;
                                 if (temp <= 1)
-                                    curZone = temp;
+                                    curZoneTemp = temp;
                                 break;
                             case 2:
                                 switch (CARCONFIGTYPE) {
                                     case (1):
                                 }
-                                curZone = luTpredictionTop.PEPS_s32CaliFunction(Nodes,curPocketState);
+                                curZoneTemp = luTpredictionTop.PEPS_s32CaliFunction(Nodes,curPocketState);
                                 break;
                         }
                         //endregion
                     }
+                    curZone=curZoneTemp;
                     curZoneDebounced=zoneDebounce.DebouncedZone(curZone);
 
 
@@ -535,9 +540,10 @@ public class ScanFragment extends BaseFragment {
                     // create new byte array
                     byte[] atemp = new byte[]{0, 0, 0, 0, 0,
                             0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0};
+                            0, 0, 0, 0, 0,
+                            0,0,0,0,0};
 
-                    Integer[] I=new Integer[15];
+                    Integer[] I=new Integer[20];
                     int tempCMD;
                     if(CMDCounter>0){
                         tempCMD=(CMDValue);
@@ -571,8 +577,12 @@ public class ScanFragment extends BaseFragment {
                     I[12]=(int)Nodes[7].rssi_filtered;
                     I[13]=(int)Nodes[8].rssi_filtered;
                     I[14]=(int)Nodes[9].rssi_filtered;
-
-                    for (int i=0;i<=14;i++){
+                    I[15]=(int)Nodes[10].rssi_filtered;
+                    I[16]=(int)Nodes[11].rssi_filtered;
+                    I[17]=(int)SettingFragment.uwbZone;
+                    I[18]=(int)zoneTF;
+                    I[19]=(int)zoneLUT;
+                    for (int i=0;i<=19;i++){
                         atemp[i]=I[i].byteValue();// convert Integer to byte
                     }
                     // write the characteristic
@@ -613,7 +623,7 @@ public class ScanFragment extends BaseFragment {
             if (Nodes[0]==null) {
                 Nodes[0]=new Node();
             }
-            Nodes[0].saveRSSIMaster(Math.abs(mainRssi));
+            Nodes[0].saveRSSIMaster(Math.abs(mainRssi)-7);
         }
 
         //Byte 2-11 current assist BLE RSSI
@@ -621,7 +631,7 @@ public class ScanFragment extends BaseFragment {
             if (Nodes[i] == null) {
                 Nodes[i] = new Node();
             }
-            Nodes[i].saveRSSI(-nodeRssi[i]);
+            Nodes[i].saveRSSI(-nodeRssi[i]-7);
         }
 
 

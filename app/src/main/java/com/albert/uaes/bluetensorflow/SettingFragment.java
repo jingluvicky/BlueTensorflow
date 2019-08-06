@@ -93,7 +93,7 @@ public class SettingFragment extends BaseFragment {
         btn_unlockplus = view.findViewById(R.id.btn_unlockplus);
         txt_lockdis = view.findViewById(R.id.txt_lockDis);
         txt_unlockdis = view.findViewById(R.id.txt_unlockDis);
-
+        txt_zone=view.findViewById(R.id.txt_zone);
         img_zone0 = view.findViewById(R.id.img_zone0);
         img_zone1 = view.findViewById(R.id.img_zone1);
         img_zone3 = view.findViewById(R.id.img_zone3);
@@ -143,7 +143,9 @@ public class SettingFragment extends BaseFragment {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked){
-                    ScanFragment.
+                    ScanFragment.decisiontype=1;
+                }else{
+                    ScanFragment.decisiontype=2;
                 }
             }
         });
@@ -256,7 +258,7 @@ public class SettingFragment extends BaseFragment {
 
     private void updateUi(){
         int walk=ScanFragment.curMotion;
-        int curZone=ScanFragment.curZone;
+        int curZone=ScanFragment.curZoneDebounced;
         int curLeftRight=ScanFragment.curLeftRight;
         int pocketState=ScanFragment.curPocketState;
 
@@ -353,6 +355,7 @@ public class SettingFragment extends BaseFragment {
             img_zone1.setImageResource(R.drawable.grayicon);
             img_zone3.setImageResource(R.drawable.grayicon);
         }
+        txt_zone.setText(curZone+"\n"+ScanFragment.curZoneDebounced);
         //endregion
     }
 
