@@ -72,8 +72,8 @@ public class MyService extends Service implements SensorEventListener {
 
     public final static String TAG = MyService.class.getName();
 
-    public static String MAC_ADDRESS = "00:60:37:81:6C:57";
-    private final  String TARGET_DEVICE = "SMART PEPS DEMO";
+    public static String MAC_ADDRESS = "18:04:ED:16:9E:E1";
+    private final  String TARGET_DEVICE = "Geely Demo 0EFG";
 
 
     private final IBinder mBinder = new LocalBinder();
@@ -105,9 +105,10 @@ public class MyService extends Service implements SensorEventListener {
     private final String CYCLE_INDCATE_UUID ="02362A13-CF3A-11E1-EFDE-0002A5D5C51B";
 
 
-    private final String service_uuid = "0000fff0-0000-1000-8000-00805f9b34fb";
-    private final String charac_uuid =  "0000fff4-0000-1000-8000-00805f9b34fb";
-    private final String WRITE_UUID =  "0000fff3-0000-1000-8000-00805f9b34fb";
+    private final String service_uuid = "02362aff-cf3a-11e1-efde-0002a5d5c51b";
+    private final String charac_uuid =  "02362a13-cf3a-11e1-efde-0002a5d5c51b";
+
+    private final String WRITE_UUID =  "02362a10-cf3a-11e1-efde-0002a5d5c51b";
     private final static UUID config_uuid =  UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 
     public static final int GET_BET_DATA = 0xabc0001;
@@ -192,7 +193,7 @@ public class MyService extends Service implements SensorEventListener {
             BluetoothDevice device = result.getDevice();
             Log.d(TAG, "onScanResult: "+device.getName() +":"+ device.getAddress());
 
-
+           // if (device.getAddress()!=null && device.getAddress().equals(MAC_ADDRESS)){
             if(device.getName()!= null && device.getName().equals(TARGET_DEVICE)) {
                 connectBle(device.getAddress());
             }
@@ -315,7 +316,7 @@ public class MyService extends Service implements SensorEventListener {
     public void createFile(String name){
 
 
-            writeSensorDataTofile();
+        writeSensorDataTofile();
 
 
     }
@@ -419,10 +420,10 @@ public class MyService extends Service implements SensorEventListener {
         scanSettingBuilder.setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY);
         //设置蓝牙LE扫描滤波器硬件匹配的匹配模式
         //在主动模式下，即使信号强度较弱，hw也会更快地确定匹配.在一段时间内很少有目击/匹配。
-        scanSettingBuilder.setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE);
+        scanSettingBuilder.setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE);//****************************8
         //设置蓝牙LE扫描的回调类型
         //为每一个匹配过滤条件的蓝牙广告触发一个回调。如果没有过滤器是活动的，所有的广告包被报告
-        scanSettingBuilder.setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES);
+        scanSettingBuilder.setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES);//**********************************************8
         return scanSettingBuilder.build();
     }
 
@@ -516,7 +517,7 @@ public class MyService extends Service implements SensorEventListener {
                     @Override
                     public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
                         super.onCharacteristicWrite(gatt, characteristic, status);
-                        Log.i("writeData***receive",characteristic.getValue().toString());
+                        //Log.i("writeData***receive",characteristic.getValue().toString());
 
                     }
 
@@ -524,11 +525,10 @@ public class MyService extends Service implements SensorEventListener {
                     public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
                         super.onCharacteristicChanged(gatt, characteristic);
                         dataReceived=characteristic.getValue();
-                        Log.d(TAG,"Data received"+dataReceived[1]);
-                        // TODO: 2019/4/9 变化后的操作
-                        if (gatt.readRemoteRssi()){
-                            broadcastRssiData(ACTION_RSSI_VALUE,mainRssi,dataReceived);
-                        }
+                        broadcastRssiData(ACTION_RSSI_VALUE,dataReceived);
+                        //Log.d(TAG,"Data received"+dataReceived[0]);
+
+
                     }
 
                     @Override
@@ -567,15 +567,22 @@ public class MyService extends Service implements SensorEventListener {
         sendBroadcast(intent);
     }
 
-    private void broadcastRssiData(final String action,int mainRssi, byte[] dataReceived){
-        final Intent intent = new Intent(action);
-        int[]dataReceivedInt=new int[15];
-        for (int i=0;i<dataReceived.length;i++){
-            dataReceivedInt[i]=(int)dataReceived[i];
+    private void broadcastRssiData( final String action,byte[] dataReceived){
+        if (dataReceived.length<10)
+        {
+            final Intent intent = new Intent(action);
+            int[]dataReceivedInt=new int[15];
+            mainRssi=(int)dataReceived[0];
+            //Log.d("a2",dataReceived[2]+" ");
+            for (int i=1;i<dataReceived.length;i++){
+                dataReceivedInt[i-1]=(int)dataReceived[i];
+            }
+            //Log.d("a22",dataReceivedInt[1]+" ");
+
+            WrapRssiData wrapRssiData = new WrapRssiData(mainRssi,dataReceivedInt);
+            intent.putExtra("data",wrapRssiData);
+            sendBroadcast(intent);
         }
-        WrapRssiData wrapRssiData = new WrapRssiData(mainRssi,dataReceivedInt);
-        intent.putExtra("data",wrapRssiData);
-        sendBroadcast(intent);
     }
 
     @Override
@@ -814,14 +821,14 @@ public class MyService extends Service implements SensorEventListener {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                Log.d("<------>","recordConnectData start");
+                //Log.d("<------>","recordConnectData start");
                 byte [] buffer = (content+"\n").getBytes();
                 try {
                     connectFos.write(buffer);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                Log.d("<------>","recordConnectData end");
+                //Log.d("<------>","recordConnectData end");
             }
         }).start();
 
@@ -893,7 +900,7 @@ public class MyService extends Service implements SensorEventListener {
                         byte[] buffer = ss.getBytes();
                         SensorFragment.recordtime=SensorFragment.recordtime-1;
 
-                        Log.d(TAG," write to folie");
+                        //Log.d(TAG," write to folie");
                         try {
                             fos.write(buffer);
 
@@ -902,15 +909,15 @@ public class MyService extends Service implements SensorEventListener {
                         }
                     }else{
                         SensorFragment.isRecord=false;
-                       Log.d(TAG, "stop write to folie");
+                        //Log.d(TAG, "stop write to folie");
                     }
-                try{
-                    Thread.sleep(50);
-                }catch(InterruptedException e){
-                    e.printStackTrace();
+                    try{
+                        Thread.sleep(50);
+                    }catch(InterruptedException e){
+                        e.printStackTrace();
+                    }
+                    //Log.d("<------>","recordConnectData end");
                 }
-                Log.d("<------>","recordConnectData end");
-            }
             }
         }).start();
 

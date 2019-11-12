@@ -34,7 +34,8 @@ public class Node {
     public void saveRSSI(double newRSSIValue)
 
     {
-        if (newRSSIValue != 0) {
+        rssi_filtered=newRSSIValue;
+        /*if (newRSSIValue != 0) {
             rssi = (int) newRSSIValue;
 
             if ((Math.abs(newRSSIValue - rssiOld)) > 30) {
@@ -80,14 +81,15 @@ public class Node {
             rssiOld = newRSSIValue;
             rssi_filtered = x;
             rssi_max = maxRssi;
-        }
+        }*/
     }
 
     //主节点滤波
     public void saveRSSIMaster(double newRSSIValue)
 
     {
-        Q=0.03;
+        rssi_filtered=newRSSIValue;
+        /*Q=0.03;
         R=100;
         rssi = (int) newRSSIValue;
         double z = newRSSIValue;
@@ -102,6 +104,6 @@ public class Node {
             P = P - K * P;
             rssi_filtered = x;
 
-        }
+        }*/
     }
 }

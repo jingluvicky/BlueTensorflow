@@ -2,7 +2,6 @@ package com.albert.uaes.bluetensorflow;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -31,13 +30,14 @@ import com.albert.uaes.tensorflowlibrary.admin.PEPSBuilder;
 import com.albert.uaes.tensorflowlibrary.admin.PEPSDirector;
 import com.albert.uaes.tensorflowlibrary.admin.PEPSImplBuilder;
 import com.albert.uaes.tensorflowlibrary.tf.KalmanFilter_distance;
-import com.albert.uaes.tensorflowlibrary.tf.PocketDetector;
-import com.albert.uaes.tensorflowlibrary.tf.PredictionTF_distance0711;
+import com.albert.uaes.tensorflowlibrary.tf.PhoneStateDetector;
 import com.albert.uaes.tensorflowlibrary.tf.PredictionTF_motion;
 import com.albert.uaes.tensorflowlibrary.tf.PredictionTF_xy;
 import com.albert.uaes.tensorflowlibrary.model.Node;
 import com.albert.uaes.tensorflowlibrary.tf.LUTprediction_top;
+import com.albert.uaes.tensorflowlibrary.tf.PredictionTF_zone;
 import com.albert.uaes.tensorflowlibrary.tf.ZoneDebounce;
+import com.albert.uaes.tensorflowlibrary.tf.bodyBoundary;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -62,18 +62,18 @@ public class ScanFragment extends BaseFragment {
 
     private BleConnectedReceiver bleConnectedReceiver;
 
-    public float[] curMotionOutput,curZoneOutput;
+    public float[] curMotionOutput;
 
     private PredictionTF_motion preTF_motion;
-    private PredictionTF_distance0711 preTF_zone;
-    PredictionTF_xy preTF_xy;
+    private bodyBoundary bodyBoundary;
+    private PredictionTF_zone preTF_zone;
     LUTprediction_top luTpredictionTop =new LUTprediction_top(); //Lookup table
     ZoneDebounce zoneDebounce=new ZoneDebounce();
     KalmanFilter_distance distanceFilter=new KalmanFilter_distance();
 
     public int CMDCounter;
     public int CMDValue;
-    public static int curMotion=255,curZone=255,curLeftRight=255,curZoneDebounced,curZone_filtered=255,curPocketState,awakeState=0,curX=0,curY=0,decisiontype=1,zoneTF=255,zoneLUT=255;
+    public static int curMotion=255,motionCounter=0,curZone=255,curLeftRight=255,curZoneDebounced,curPocketState,curEarState,awakeState=0,decisiontype=1,zoneLUT=255;
 
     public static float[] linearAccValue,gravityValue,gyroValue,acceleroValue;
 
@@ -81,9 +81,6 @@ public class ScanFragment extends BaseFragment {
     public static WrapRssiData wrapRssiData;
 
     // Variables
-    public volatile boolean exit = false;
-    public static volatile boolean toConnect=true, isScan=false,isConnect=false;
-    public static byte[] dataReceived=new byte[15];
     public static Node[] Nodes = new Node[13];
     public int
             DECISIONTYPE,MOTIONEABLE,
@@ -134,14 +131,11 @@ public class ScanFragment extends BaseFragment {
                             "A2:  " + (int) (Nodes[2].rssi_filtered)+ "\n" +
                             "A3:  " + (int) (Nodes[3].rssi_filtered)+ "\n" +
                             "A4:  " + (int) Nodes[4].rssi_filtered + "\n" +
-                            "A5:  " + (int) Nodes[5].rssi_filtered + "\n" +
-                            "A6:  " + (int) Nodes[6].rssi_filtered + "\n" +
-                            "A7:  " + (int) Nodes[7].rssi_filtered + "\n" +
-                            "A8:  " + (int) Nodes[8].rssi_filtered + "\n" +
-                            "A9:  " + (int) Nodes[9].rssi_filtered + "\n"
+                            "A5:  " + (int) Nodes[5].rssi_filtered + "\n"
+
                     );
                   //  if (curZoneOutput != null) {
-                        txt_curZone.setText("Current Zone:  " + curZone + "\n"+distance+"  \n" );
+                        txt_curZone.setText("Current Zone:  " + curZone + "\n"+"debounced :  "+curZoneDebounced+"\n"+distance+"  \n" );
                     //}
                     break;
                     default:
@@ -207,8 +201,8 @@ public class ScanFragment extends BaseFragment {
             switches[i] = true;
         }
         preTF_motion=new PredictionTF_motion(this.getContext().getAssets());
-        preTF_zone = new PredictionTF_distance0711(this.getContext().getAssets());
-
+        preTF_zone = new PredictionTF_zone(this.getContext().getAssets());
+        bodyBoundary=new bodyBoundary();
         aSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -247,9 +241,6 @@ public class ScanFragment extends BaseFragment {
                     // TODO: 2019/4/10 取消扫描
                     stopConenct(false);
                     Intent intent=new Intent(getActivity(),MyService.class);
-
-
-
                     removeRunnable();
                 }
             }
@@ -262,6 +253,7 @@ public class ScanFragment extends BaseFragment {
                     //不在扫描中
                     imgScan.setImageResource(R.mipmap.redicon2);
                     imgConnect.setImageResource(R.mipmap.redicon2);
+
                     break;
                 case 2:
                     //连接中
@@ -273,6 +265,7 @@ public class ScanFragment extends BaseFragment {
                         //不在扫描中
                         imgScan.setImageResource(R.mipmap.greenicon);
                         imgConnect.setImageResource(R.mipmap.redicon2);
+
                         break;
             }
         }else {
@@ -297,13 +290,12 @@ public class ScanFragment extends BaseFragment {
             sportTFRunnable = new Runnable() {
                 @Override
                 public void run() {
-
+                    motionCounter=motionCounter+1;
                     PEPSBuilder pepsBuilder=new PEPSImplBuilder();
                     PEPSDirector pepsDirector= PEPSDirector.getInstance(pepsBuilder);
 
                     pepsDirector.setPredictionTF_motion(preTF_motion)
                             .getMotionState(getActivity());
-
 
                         // init sensor values
                         if (gyroValue == null) {
@@ -319,42 +311,42 @@ public class ScanFragment extends BaseFragment {
                             linearAccValue = new float[3];
                         }
 
-                        if (PocketDetector.inPocket(gravityValue, distanceValue, light)) {
-                            curPocketState = 1;
-                        } else {
-                            curPocketState = 0;
-                        }
+                        curPocketState=PhoneStateDetector.inPocket(gravityValue, distanceValue, light);
+
+                        curEarState=PhoneStateDetector.onEar(gravityValue,distanceValue,light,Nodes);
+
                         preTF_motion.Storage(gyroValue, linearAccValue, acceleroValue);
-                        float[] outputs = preTF_motion.getPredict();
+
+                        if (motionCounter==5)
+                        {
+                            curMotionOutput = preTF_motion.getPredict();
                         float tempMax = -10;
                         int tempMaxNumber = 0;
                         for (int i = 0; i < 3; i++) {
-                            if (outputs[i] > tempMax) {
-                                tempMax = outputs[i];
+                            if (curMotionOutput[i] > tempMax) {
+                                tempMax = curMotionOutput[i];
                                 tempMaxNumber = i;
                             }
                         }
                         tempMaxNumber = tempMaxNumber + 1;
 
-                        if (tempMaxNumber == 2 && outputs[1] > 2) {
+                        if (tempMaxNumber == 2 && curMotionOutput[1] > 2) {
                             curMotion = tempMaxNumber;
                         } else if (tempMaxNumber != 2) {
                             curMotion = tempMaxNumber;
                         }
-                        curMotionOutput = outputs;
+                        motionCounter=0;
+                        }
+
                         //通知页面绘制结果
                         if (curMotionOutput != null) {
                             handler.sendEmptyMessage(MOTIONCHAGE);
                         }
-                        for (int i = 0; i < 4; i++) {
-                            motionbuffer[i] = motionbuffer[i + 1];
 
-                        }
-                        motionbuffer[4] = curZone;
                     }
             };
         }
-        ThreadPoolManager.getInstance(ThreadPoolManager.Scheduled_ThreadPool_Executor_Type).scheduleAtFixedRate(sportTFRunnable,0,100,TimeUnit.MILLISECONDS);
+        ThreadPoolManager.getInstance(ThreadPoolManager.Scheduled_ThreadPool_Executor_Type).scheduleAtFixedRate(sportTFRunnable,0,20,TimeUnit.MILLISECONDS);
 
 
         /**
@@ -365,7 +357,6 @@ public class ScanFragment extends BaseFragment {
             zoneTFRunnable = new Runnable() {
                 @Override
                 public void run() {
-                    Log.d(TAG,"begin location");
                         // perform the tensorflow model
                     int curZoneTemp;
                     curZoneTemp=6; //状态为连接态
@@ -382,51 +373,40 @@ public class ScanFragment extends BaseFragment {
                         //region  利用定位算法判断位置
                         // 1. perform the tensorflow model
                         // 2. perform Lookup table
-                        //preTF_xy.Storage(Nodes);
-                        //float []a = preTF_xy.getPredict();
-                        curX=0;//(int)(a[0]*800);
-                        curY=0;//(int)(a[1]*800);
+
                         switch (decisiontype) {
-                            case 1:
-                                float[] outputs = new float[1];
-                                switch (CARCONFIGTYPE) {
-                                    case 1:
-                                        preTF_zone.Storage(Nodes);
-                                        outputs = preTF_zone.getPredict();
-                                        if (distanceFilter == null)
-                                            distanceFilter = new KalmanFilter_distance();
-                                        break;
-                                    case 2:
-                                        break;
-                                    default:
-                                        outputs[0] = 0;
-                                        break;
+                            case 1://tensorflow model
+                                float outputs ;
 
-                                }
-                                outputs[0] = (float) distanceFilter.FilteredRSSI(outputs[0], true);
+                                preTF_zone.Storage(Nodes);
+                                outputs = preTF_zone.getPredict()[0];
+                                if (distanceFilter == null)
+                                    distanceFilter = new KalmanFilter_distance();
 
-                                distance = outputs[0]*5;
-                                zoneTF=(int)distance*10;
+                                outputs= (float) distanceFilter.FilteredRSSI(outputs);
+
+                                distance = outputs/100;//cm to m
+
                                 if (distance < (float) SettingFragment.unlockDis / 10)
                                     curZoneTemp = 1;
                                 else if (distance > (float) SettingFragment.lockDis / 10)
                                     curZoneTemp = 3;
                                 else curZoneTemp = 2;
-                                if (Nodes[0].rssi_filtered < 60) curZoneTemp = 1;
-                                int temp = luTpredictionTop.PEPS_s32CaliFunction(Nodes,curPocketState);
-                                zoneLUT=temp;
-                                if (temp <= 1)
+
+                                int temp = luTpredictionTop.PEPS_s32CaliFunction(Nodes,curEarState);
+                                //int temp=bodyBoundary.decision_tree6(Nodes);
+                                if (temp ==0)
                                     curZoneTemp = temp;
+
                                 break;
                             case 2:
-                                switch (CARCONFIGTYPE) {
-                                    case (1):
-                                }
-                                curZoneTemp = luTpredictionTop.PEPS_s32CaliFunction(Nodes,curPocketState);
+                                curZoneTemp = luTpredictionTop.PEPS_s32CaliFunction(Nodes,curEarState);
+
                                 break;
                         }
                         //endregion
                     }
+
                     curZone=curZoneTemp;
                     curZoneDebounced=zoneDebounce.DebouncedZone(curZone);
 
@@ -538,12 +518,9 @@ public class ScanFragment extends BaseFragment {
                 @Override
                 public void run() {
                     // create new byte array
-                    byte[] atemp = new byte[]{0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0,
-                            0,0,0,0,0};
+                    byte[] atemp = new byte[]{0, 0, 0,0,0,0,0,0,0,0};
 
-                    Integer[] I=new Integer[20];
+                    Integer[] I=new Integer[10];
                     int tempCMD;
                     if(CMDCounter>0){
                         tempCMD=(CMDValue);
@@ -556,44 +533,32 @@ public class ScanFragment extends BaseFragment {
                     // Command
                     I[0]=tempCMD;
                     // current Zone
-                    I[1] = curZone_filtered;
-                    I[2] =curLeftRight;
-                    I[3] = 0;
-
+                    I[1] = 1;
+                    I[2] =curZoneDebounced;
+                    I[3] = curLeftRight;
+                    I[4]=0;
                     if (curMotion==2){
-                        I[4] = 1;
+                        I[5] = 1;
                     }else{
-                        I[4]=0;
+                        I[5]=0;
                     }
 
-
-                    I[5] = (int)Nodes[0].rssi_filtered;
-                    I[6]=(int)Nodes[1].rssi_filtered;
+                    I[6]=(int)Nodes[0].rssi;
                     I[7] = (int)Nodes[2].rssi_filtered;
                     I[8]=(int)Nodes[3].rssi_filtered;
                     I[9]=(int)Nodes[4].rssi_filtered;
-                    I[10]=(int)Nodes[5].rssi_filtered;
-                    I[11]=(int)Nodes[6].rssi_filtered;
-                    I[12]=(int)Nodes[7].rssi_filtered;
-                    I[13]=(int)Nodes[8].rssi_filtered;
-                    I[14]=(int)Nodes[9].rssi_filtered;
-                    I[15]=(int)Nodes[10].rssi_filtered;
-                    I[16]=(int)Nodes[11].rssi_filtered;
-                    I[17]=(int)SettingFragment.uwbZone;
-                    I[18]=(int)zoneTF;
-                    I[19]=(int)zoneLUT;
-                    for (int i=0;i<=19;i++){
+
+                    for (int i=0;i<10;i++){
                         atemp[i]=I[i].byteValue();// convert Integer to byte
                     }
                     // write the characteristic
                     if (myService!=null){
                         myService.writeValue(atemp);
                     }
-                    Log.i("writeData***",atemp.toString());
                 }
             };
         }
-        ThreadPoolManager.getInstance(ThreadPoolManager.Scheduled_ThreadPool_Executor_Type).scheduleAtFixedRate(writeDataToMasterRunnable,0,50,TimeUnit.MILLISECONDS);
+        ThreadPoolManager.getInstance(ThreadPoolManager.Scheduled_ThreadPool_Executor_Type).scheduleAtFixedRate(writeDataToMasterRunnable,0,10,TimeUnit.MILLISECONDS);
     }
 
     private void removeRunnable(){
@@ -623,7 +588,7 @@ public class ScanFragment extends BaseFragment {
             if (Nodes[0]==null) {
                 Nodes[0]=new Node();
             }
-            Nodes[0].saveRSSIMaster(Math.abs(mainRssi)-7);
+            Nodes[0].saveRSSIMaster(Math.abs(mainRssi)-curEarState*3);
         }
 
         //Byte 2-11 current assist BLE RSSI
@@ -631,18 +596,18 @@ public class ScanFragment extends BaseFragment {
             if (Nodes[i] == null) {
                 Nodes[i] = new Node();
             }
-            Nodes[i].saveRSSI(-nodeRssi[i]-7);
+            Nodes[i].saveRSSI(-nodeRssi[i-1]-curEarState*3);
         }
 
 
-
-        if(Math.abs(Nodes[2].rssi_filtered+Nodes[3].rssi_filtered-Nodes[5].rssi_filtered-Nodes[6].rssi_filtered)>5) {
-            if (Nodes[2].rssi_filtered + Nodes[3].rssi_filtered > Nodes[5].rssi_filtered + Nodes[6].rssi_filtered) {
-                curLeftRight = 0;
-            } else {
+        if(Nodes[3].rssi_filtered-Nodes[1].rssi_filtered>5)
+        {
                 curLeftRight = 1;
-            }
+        } else if (Nodes[1].rssi_filtered-Nodes[3].rssi_filtered>5)
+        {
+                curLeftRight = 0;
         }
+
     }
 
     /**

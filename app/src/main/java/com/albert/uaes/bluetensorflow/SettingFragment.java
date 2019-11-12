@@ -143,9 +143,9 @@ public class SettingFragment extends BaseFragment {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked){
-                    ScanFragment.decisiontype=1;
-                }else{
                     ScanFragment.decisiontype=2;
+                }else{
+                    ScanFragment.decisiontype=1;
                 }
             }
         });

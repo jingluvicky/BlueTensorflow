@@ -16,7 +16,7 @@ public class KalmanFilter_distance {
 
     }
 
-    public double FilteredRSSI(double newRSSIValue,boolean valid)
+    public double FilteredRSSI(double newRSSIValue)
 
     {
         z=newRSSIValue;
@@ -24,8 +24,9 @@ public class KalmanFilter_distance {
             x=newRSSIValue;
             P=R;
         }
-        if (valid) z=newRSSIValue;else if (!valid&& x<newRSSIValue)z=newRSSIValue;else z=x;
-        if(0!=x){
+        z=newRSSIValue;
+        if (z<x)x=z;
+        else if(0!=x){
             x=x+B*U;
             P=P+Q;
             K=P/(P+R);

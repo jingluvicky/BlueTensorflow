@@ -14,14 +14,14 @@ public class ZoneDebounce {
 
     private int ZONEBUFFERNUMBER=5,
 
-    DEBOUNCEBUFFERMATRIX[][]={  {0,5,0,40,0,0,0},
-
-            {0,0,0,20,0,0,0},
-
+    DEBOUNCEBUFFERMATRIX[][]={
+            {0,5,0,5,0,0,0},
+            {0,0,0,5,0,0,0},
             {0,0,0,0,0,0,0},
-
             {0,0,0,0,0,0,0},
-            {0,0,0,0,0,0,0},{0,0,0,0,0,0,0},{0,0,0,0,0,0,0}};
+            {0,0,0,0,0,0,0},
+            {0,0,0,0,0,0,0},
+            {0,0,0,0,0,0,0}};
 
 
 
@@ -31,7 +31,7 @@ public class ZoneDebounce {
 
 
 
-        if (curZone==-1){
+        if (curZone==-1 ||curZone==2){
 
             curZone=debouncedZone1;
 

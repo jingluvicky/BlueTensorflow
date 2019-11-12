@@ -329,7 +329,7 @@ public class ScanService extends Service {
                     @Override
                     public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
                         super.onCharacteristicWrite(gatt, characteristic, status);
-                        Log.i("writeData***receive",characteristic.getValue().toString());
+                       // Log.i("writeData***receive",characteristic.getValue().toString());
 
                     }
 

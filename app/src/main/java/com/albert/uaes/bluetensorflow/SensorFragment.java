@@ -329,7 +329,7 @@ public class SensorFragment extends BaseFragment {
             btn_begin.setBackgroundResource(R.drawable.pause);
         }else{
             btn_begin.setBackgroundResource(R.drawable.begin);
-            ScanFragment.aSwitch.setChecked(false);
+            //ScanFragment.aSwitch.setChecked(false);
         }
     }
 
